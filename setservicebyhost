@@ -55,7 +55,6 @@ my $n_method;
 my $servnum;
 my $n_maxhostattempts;
 my $n_hostattempts;
-#Exit on no services!
 my @services = ();
 
 my $now = `date +%s`;

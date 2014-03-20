@@ -61,7 +61,7 @@ GetOptions(     "h|host=s"     		=> \$n_hostname,
         	#"h|help"       	=> \$HELP
 );
 
-#Get all host services either by checklive or by cpan module nagios::config
+#Get all host services either by MK Livestatus or by cpan module nagios::config
 if ( defined ($n_method) && defined ($n_hostname) && defined ($n_hoststatid) && defined ($n_lastservicestatusid)) {
   if ($n_method eq "m") {
     @services = `echo \"GET services\\nColumns\: description\\nFilter\: host_name \>= $n_hostname \\n\" \| unixcat $nagioslivechk`;

@@ -23,8 +23,11 @@
 #  Email: info@callsen.org
 #  Version: 1.1
 #
-#Debian require package libnagios-object-perl
+# Debian require package libnagios-object-perl
 #
+#Based on the idea from  Vicente Gavara
+#http://monitoringtt.blogspot.de/2011/05/nagios-service-checks-based-on-host.html
+
 
 use Getopt::Long;
 use Nagios::Config;

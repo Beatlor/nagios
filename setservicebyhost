@@ -37,11 +37,11 @@ use Nagios::Config;
 
 my $n_hostname;
 my $n_hoststatid;
-my $n_lastservicestatusid;
 
 my $nagioslivechk = '/var/lib/nagios3/rw/live';
 my $nagioscmd     = '/var/lib/nagios3/rw/nagios.cmd';
 my $nagiosconf    = '/etc/nagios3/nagios.cfg';
+my $nagioslog     = '/var/log/nagios3/eventhandler.log';
 
 my $ext_cmd_ehsn = "ENABLE_HOST_SVC_NOTIFICATIONS";
 my $ext_cmd_ehsc = "ENABLE_HOST_SVC_CHECKS";
@@ -51,6 +51,10 @@ my $ext_cmd_pscr = "PROCESS_SERVICE_CHECK_RESULT";
 
 my $sendcmd;
 my $h_service;
+my $n_method;
+my $servnum;
+my $n_maxhostattempts;
+my $n_hostattempts;
 #Exit on no services!
 my @services = ();
 
@@ -59,21 +63,25 @@ chomp ($now);
 
 GetOptions(     "h|host=s"     		=> \$n_hostname,
 		"s|hoststatid=s"     	=> \$n_hoststatid,
-		"l|lastservicestat=s" 	=> \$n_lastservicestatusid,
+		"a|attempts=s"		=> \$n_maxhostattempts,
+		"u|hostatt=s"		=> \$n_hostattempts,
 		"m|method=s"		=> \$n_method
         	#"h|help"       	=> \$HELP
 );
 
+#open LOG, ">>$nagioslog" or die $!;
+#printf LOG ("[$now] Hostname $n_hostname HoststatID $n_hoststatid\nMaxhostattempts $n_maxhostattempts Hostattempts $n_hostattempts\n");
+
 #Get all host services either by MK Livestatus or by cpan module nagios::config
-if ( defined ($n_method) && defined ($n_hostname) && defined ($n_hoststatid) && defined ($n_lastservicestatusid)) {
+if ( defined ($n_method)) {
   if ($n_method eq "m") {
     @services = `echo \"GET services\\nColumns\: description\\nFilter\: host_name \>= $n_hostname \\n\" \| unixcat $nagioslivechk`;
   }
   else {
     my $PARS = Nagios::Config->new(Filename => $nagiosconf, Version => 2);
     my $host = $PARS->find_object($n_hostname,'Nagios::Host');
-    if ( defined $host ) {
-      my $servnum = 0;
+    if ( defined ($host) ) {
+      $servnum = 0;
       foreach my $Service ( $host->list_services ) {
         #printf "CONFIG: %s\n", $Service->{'service_description'};
         $services[$servnum] = $Service->{'service_description'};
@@ -89,6 +97,11 @@ else { exit 1; }
 $servnum = @services;
 if (!$servnum) { exit 1;}
 
+#printf LOG ("Hostservices\n@services $servnum");
+#printf LOG ("\n--End--\n");
+#close LOG;
+
+
 #Send command to pipe
 sub sendcommand {
   my ($command )  = @_;
@@ -99,17 +112,17 @@ sub sendcommand {
 open CMD, ">$nagioscmd" or die $!;
 
 #Enable all services for a host
-if (!$n_hoststatid) {
+if ($n_hoststatid == 0) {
   foreach $h_service (@services) {
     chomp ($h_service);
     #printf ("Activate-$h_service\n");
-    sendcommand "$ext_cmd_pscr;$n_hostname;$h_service;$n_lastservicestatusid;OK";
+    sendcommand "$ext_cmd_pscr;$n_hostname;$h_service;0;OK";
   }
   sendcommand "$ext_cmd_ehsn;$n_hostname";
   sendcommand "$ext_cmd_ehsc;$n_hostname";
 }
 #Disable all services for a host
-else {
+if ($n_hostattempts == ($n_maxhostattempts-1) && $n_hoststatid != 0) {
    sendcommand "$ext_cmd_dhsc;$n_hostname";
    sendcommand "$ext_cmd_dhsn;$n_hostname";
    foreach $h_service (@services) {

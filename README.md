@@ -1,5 +1,5 @@
-nagios
-======
+nagios service checks based on host status
+==========================================
 
 Check command: 
 ```
